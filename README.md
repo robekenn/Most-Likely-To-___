@@ -19,12 +19,12 @@ Without Redis variables, local games use memory and disappear on server restart.
 1. Create your GitHub repository, then add the contents of this folder to its root. `package.json`, `api/`, and `public/` must be at that root. Do not upload `dist/` or credentials.
 2. In Vercel, import the repository. Select **Other** for the framework. Build command: `npm run build`. Output directory: `dist`. `vercel.json` includes both settings. Use Node.js 22 or newer. Leave the install command at its default.
 3. Create an Upstash Redis database through the Vercel Marketplace or your Upstash account. Use a database region near your Vercel functions.
-4. Add these **server-side** environment variables in Vercel, using the database’s REST credentials:
+4. Connect the Upstash database to this project for Production (and Preview if desired). The Marketplace integration automatically provides `KV_REST_API_URL` and `KV_REST_API_TOKEN`, which the game supports directly. No copying or exposing credentials is necessary. Alternatively, add these **server-side** environment variables using the database’s REST credentials:
 
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
 
-   Use the read/write token, not a read-only token. If an integration supplies differently named variables, copy the appropriate REST values into these exact names. Never put credentials in `public/`, GitHub, or browser JavaScript.
+   Use the read/write token, not a read-only token. A complete `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` pair takes precedence over the Marketplace pair. URL and token values from different pairs are never mixed. Never put credentials in `public/`, GitHub, or browser JavaScript.
 5. Deploy (or redeploy after adding variables). Open the deployed HTTPS URL.
 6. Before inviting everyone, use two separate devices: create a room, join, select two rounds, vote once each round, refresh one device, and reveal both results. Verify earlier picks are disabled and ties show every winner.
 
