@@ -44,7 +44,7 @@ Official references:
 - Host chooses 1–N rounds, where N is the player count.
 - Self-voting is allowed. Each voter may choose each person at most once across the entire game. Other voters have their own independent restrictions.
 - 50 friendly prompts; prompts are shuffled server-side and never repeat within a game.
-- Everyone gets the same prompt. A vote locks immediately and cannot be changed.
+- Everyone gets the same prompt. Choose a player, then tap **Lock in my vote**. You can change your selection before locking it; a locked vote cannot be changed.
 - The last vote advances the round automatically. The host can close a stuck round; absent votes are omitted rather than fabricated. Skipped votes do not use up a pick.
 - Results remain hidden until voting finishes and the host reveals them one at a time. All tied winners are shown. A round with no votes has no winner.
 - Everyone sees the host's current reveal. Previously revealed results can be reviewed.
@@ -80,3 +80,9 @@ The build syntax-checks browser JavaScript before copying static assets. Tests c
 The Redis write uses a Lua compare-and-swap on room revision to prevent lost votes when different function instances update a room simultaneously. Creation uses `SET NX`; writes preserve the 24-hour TTL. Views never send player secrets, individual ballots, future prompts, or unrevealed results. Player tokens are random 256-bit bearer credentials, stored as hashes in room records. Names are escaped before display. The API applies a shared Redis-backed IP request limit; this is basic protection for friend-group use, not a complete public-service abuse prevention system.
 
 Completed verification: local game/API tests and build; desktop browser rendering and lobby creation/reconnection. Production Vercel routing and live Upstash credentials have not been tested because those accounts are not connected. Physical-phone and production two-device smoke tests remain necessary after deployment.
+
+## Interaction polish
+
+Lobby joins update the guest list without replacing the host's round selector. During voting, other players' status updates preserve your pick and keyboard focus. Pick a player first, then confirm with the sticky lock-in button. Clear loading states prevent duplicate clicks, and failed requests keep form entries and selections available for retry.
+
+Invite sharing uses the phone's native share sheet when available, with copy-link and manual-copy fallbacks. Confirmation dialogs handle leaving or closing a round. Results include short reveal animations, optional vote breakdowns, and a history of earlier results. All animation respects reduced-motion preferences. Reconnection pauses in background tabs and backs off during connection failures.
