@@ -1,5 +1,5 @@
 import {randomInt} from 'node:crypto';
-import {create,mutate,view,GameError,hash} from '../lib/game.js';
+import {create,mutate,view,lobbyPreview,GameError,hash} from '../lib/game.js';
 import {get,save,rateLimit} from '../lib/store.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
@@ -12,12 +12,13 @@ export default async function handler(req,res){
  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))throw new GameError('Invalid player session.',401);
  await rateLimit(hash(String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0]));
  if(b.action==='create'){
- for(let i=0;i<8;i++){const code=Array.from({length:6},()=> 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[randomInt(32)]).join('');const g=create(code,b.name,token);if(await save(g,null))return res.end(JSON.stringify(view(g,token)));}
+ for(let i=0;i<8;i++){const code=Array.from({length:6},()=> 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[randomInt(32)]).join('');const g=create(code,b.name,token,{gameMode:b.gameMode,adultsConfirmed:b.adultsConfirmed});if(await save(g,null))return res.end(JSON.stringify(view(g,token)));}
  throw new GameError('Could not create a room. Try again.',503);
  }
  const code=String(b.code||'').toUpperCase();if(!/^[A-Z2-9]{6}$/.test(code))throw new GameError('Enter the six-character lobby code.');
  for(let i=0;i<30;i++){
  const g=await get(code);if(!g)throw new GameError('Lobby not found or expired. Ask your host for a new code.',404);
+ if(b.action==='lobby')return res.end(JSON.stringify(lobbyPreview(g)));
  if(b.action==='state')return res.end(JSON.stringify(view(g,token)));
  const previous=g.revision;mutate(g,b.action,b,token);g.revision++;
  if(await save(g,previous))return res.end(JSON.stringify(view(g,token)));

@@ -1,4 +1,5 @@
 import { screenKey, acceptSnapshot, canSelect, normalizeCode } from './client-state.js';
+import { GAME_MODES, getGameMode } from './game-modes.js';
 
 const $ = selector => document.querySelector(selector);
 const app = $('#app');
@@ -8,6 +9,7 @@ let token, code = '', state = null, savedCode = '', generation = 0;
 let mode = inviteCode ? 'join' : 'create', busy = false, restoring = false;
 let selection = null, renderedKey = '', rosterKey = '', roundsChoice = null;
 let draftName = '', draftCode = inviteCode, pollTimer, failures = 0, noticeTimer;
+let selectedGameMode = 'family', joinLobby = null;
 
 try {
   token = localStorage.getItem('ml.token');
@@ -109,12 +111,53 @@ function avatar(player) {
 function button(actionName, text, loadingLabel, extra = '') {
   return `<button class="primary" data-action="${actionName}" data-loading-label="${loadingLabel}" ${extra}>${text}</button>`;
 }
+function modePicker() {
+  return `<fieldset class="mode-picker"><legend>Pick your kind of judgment.</legend>${Object.entries(GAME_MODES).map(([id, option]) => `<label class="mode-option"><input type="radio" name="gameMode" value="${id}" ${id === selectedGameMode ? 'checked' : ''}><span class="mode-card"><strong><span aria-hidden="true">${option.symbol}</span> ${option.label}<small>${option.count} prompts</small></strong><span>${option.description}</span></span></label>`).join('')}</fieldset><label class="adult-consent" id="hostConsentWrap" ${selectedGameMode === 'adults' ? '' : 'hidden'}><input id="hostAdultsConsent" type="checkbox" ${selectedGameMode === 'adults' ? 'required' : ''}><span>I’m 18 or older and want to create an explicit Adults Only game.</span></label>`;
+}
+function modeBadge() {
+  const selected = getGameMode(state.gameMode || 'family');
+  return `<div class="mode-banner mode-${state.gameMode || 'family'}"><strong>${selected.symbol} ${selected.label}</strong><span>${selected.count} prompts · ${selected.ageRestricted ? '18+ · explicit' : 'no explicit content'}</span></div>`;
+}
+function updateJoinPreview() {
+  const slot = $('#joinPreview');
+  if (!slot) return;
+  const current = joinLobby && joinLobby.code === normalizeCode(draftCode);
+  const selected = current && getGameMode(joinLobby.gameMode);
+  slot.innerHTML = selected ? `<section class="join-preview mode-${joinLobby.gameMode}" aria-label="Lobby game mode"><strong>${selected.symbol} ${selected.label}</strong><p>${selected.description}</p><span>${joinLobby.playerCount}/${joinLobby.capacity} players · ${selected.count} prompts</span>${joinLobby.phase !== 'lobby' ? '<p>This game has started. Returning players can rejoin their seat.</p>' : ''}</section>${selected.ageRestricted ? '<label class="adult-consent"><input id="joinAdultsConsent" type="checkbox" required><span>I’m 18 or older and agree to join this explicit Adults Only game.</span></label>' : ''}` : '';
+  const submit = $('#entry button[type="submit"]');
+  if (submit) {
+    submit.dataset.action = current ? 'join' : 'lobby';
+    submit.dataset.loadingLabel = current ? 'Getting your seat…' : 'Finding your lobby…';
+    submit.dataset.idle = current ? 'Join the lobby ↗' : 'Find my lobby ↗';
+    submit.innerHTML = submit.dataset.idle;
+  }
+}
+async function findLobby() {
+  const epoch = generation, room = normalizeCode(draftCode);
+  busy = true; app.dataset.pending = 'lobby'; notice(''); syncBusy();
+  try {
+    const preview = await api('lobby', {}, room);
+    if (epoch !== generation) return;
+    joinLobby = preview; updateJoinPreview();
+    announce(`${preview.label} lobby found. Review the game mode before joining.`);
+  } catch (error) { if (epoch === generation) notice(error.message, true); }
+  finally { if (epoch === generation) { busy = false; delete app.dataset.pending; syncBusy(); } }
+}
+
 function home() {
   renderedKey = ''; rosterKey = '';
-  app.innerHTML = `<div class="home screen-enter"><section><p class="eyebrow"><span class="live-dot"></span> THE PARTY STARTS WITH A QUESTION</p><h1>Good friends.<br>Questionable<br><em>reputations.</em></h1><p class="intro">Who’s most likely to…? You know the people. Now find out what they really think.</p><div class="pills"><span class="pill">✳ 2–15 friends</span><span class="pill">↗ Play on your phone</span><span class="pill">♡ No sign-up</span><span class="pill">✦ 250 family-friendly questions</span></div><div class="art" aria-hidden="true"><div class="mock-card"><span class="tag">WHO’S MOST LIKELY TO…</span><p>make friends<br>with absolutely<br>anyone?</p></div><span class="scribble">✳</span><div class="mock-card second"><span class="tag">WHO’S MOST LIKELY TO…</span><p>take game night<br>way too<br>seriously?</p></div><span class="sticker">You already know who. ↗</span></div></section><section class="panel entry-panel"><div class="tabs" aria-label="Choose how to play"><button data-mode="create" class="${mode === 'create' ? 'active' : ''}" aria-pressed="${mode === 'create'}">Host a game</button><button data-mode="join" class="${mode === 'join' ? 'active' : ''}" aria-pressed="${mode === 'join'}">Join your friends</button></div><h2>${mode === 'create' ? 'Your people. Your lobby.' : 'Got an invite?'}</h2><p class="subtle">${mode === 'create' ? 'Get everyone together. We’ll bring the questions.' : 'Enter your name, pull up a seat, and let’s play.'}</p><form id="entry"><label for="name">What should we call you?</label><input id="name" name="name" placeholder="Your first name or nickname" maxlength="24" autocomplete="nickname" value="${escape(draftName)}" required>${mode === 'join' ? `<label for="code">Lobby code</label><input id="code" class="code-input" name="code" placeholder="ABC123" minlength="6" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${escape(draftCode)}" required>` : ''}${button(mode === 'create' ? 'create' : 'join', mode === 'create' ? 'Create a lobby ↗' : 'Join the lobby ↗', 'Getting your seat…', 'type="submit"')}</form><p class="fine">${mode === 'create' ? 'You set the rounds. Your friends bring the opinions.' : 'No account. No downloads. Just your people.'}</p><div class="steps"><span><b>01 &nbsp; Gather</b>Share your lobby code</span><span><b>02 &nbsp; Vote</b>Choose your suspects</span><span><b>03 &nbsp; Reveal</b>Let the debate begin</span></div></section></div>`;
+  app.innerHTML = `<div class="home screen-enter"><section><p class="eyebrow"><span class="live-dot"></span> THE PARTY STARTS WITH A QUESTION</p><h1>Good friends.<br>Questionable<br><em>reputations.</em></h1><p class="intro">Who’s most likely to…? You know the people. Now find out what they really think.</p><div class="pills"><span class="pill">✳ 2–15 friends</span><span class="pill">↗ Play on your phone</span><span class="pill">♡ No sign-up</span><span class="pill">✦ 750 questions · 3 ways to play</span></div><div class="art" aria-hidden="true"><div class="mock-card"><span class="tag">WHO’S MOST LIKELY TO…</span><p>make friends<br>with absolutely<br>anyone?</p></div><span class="scribble">✳</span><div class="mock-card second"><span class="tag">WHO’S MOST LIKELY TO…</span><p>take game night<br>way too<br>seriously?</p></div><span class="sticker">You already know who. ↗</span></div></section><section class="panel entry-panel"><div class="tabs" aria-label="Choose how to play"><button data-mode="create" class="${mode === 'create' ? 'active' : ''}" aria-pressed="${mode === 'create'}">Host a game</button><button data-mode="join" class="${mode === 'join' ? 'active' : ''}" aria-pressed="${mode === 'join'}">Join your friends</button></div><h2>${mode === 'create' ? 'Your people. Your lobby.' : 'Got an invite?'}</h2><p class="subtle">${mode === 'create' ? 'Get everyone together. We’ll bring the questions.' : 'Enter your name, pull up a seat, and let’s play.'}</p><form id="entry"><label for="name">What should we call you?</label><input id="name" name="name" placeholder="Your first name or nickname" maxlength="24" autocomplete="nickname" value="${escape(draftName)}" required>${mode === 'join' ? `<label for="code">Lobby code</label><input id="code" class="code-input" name="code" placeholder="ABC123" minlength="6" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${escape(draftCode)}" required>` : ''}${mode === 'create' ? modePicker() : '<div id="joinPreview"></div>'}${button(mode === 'create' ? 'create' : 'lobby', mode === 'create' ? 'Create a lobby ↗' : 'Find my lobby ↗', mode === 'create' ? 'Getting your seat…' : 'Finding your lobby…', 'type="submit"')}</form><p class="fine">${mode === 'create' ? 'You set the rounds. Your friends bring the opinions.' : 'No account. No downloads. Just your people.'}</p><div class="steps"><span><b>01 &nbsp; Gather</b>Share your lobby code</span><span><b>02 &nbsp; Vote</b>Choose your suspects</span><span><b>03 &nbsp; Reveal</b>Let the debate begin</span></div></section></div>`;
   for (const tab of app.querySelectorAll('[data-mode]')) tab.onclick = () => { if (!busy) { mode = tab.dataset.mode; home(); } };
   $('#name').oninput = event => { draftName = event.target.value; };
-  if ($('#code')) $('#code').oninput = event => { draftCode = event.target.value; };
+  if ($('#code')) $('#code').oninput = event => { draftCode = event.target.value; joinLobby = null; updateJoinPreview(); };
+  for (const radio of app.querySelectorAll('[name="gameMode"]')) radio.onchange = () => {
+    selectedGameMode = radio.value;
+    const adults = selectedGameMode === 'adults';
+    $('#hostConsentWrap').hidden = !adults;
+    $('#hostAdultsConsent').required = adults;
+    $('#hostAdultsConsent').checked = false;
+  };
+  updateJoinPreview();
   $('#entry').onsubmit = async event => {
     event.preventDefault(); if (busy) return;
     const name = draftName.trim();
@@ -123,7 +166,9 @@ function home() {
     if (mode === 'join' && !/^[A-Z2-9]{6}$/.test(draftCode)) { notice('Use the six-character code from your host.', true); $('#code').focus(); return; }
     localStorage.setItem('ml.name', name);
     if (mode === 'join') $('#code').value = draftCode;
-    await action(mode === 'create' ? 'create' : 'join', {name}, mode === 'join' ? draftCode : '');
+    if (mode === 'join' && (!joinLobby || joinLobby.code !== draftCode)) { await findLobby(); return; }
+    const adultsConfirmed = mode === 'create' ? !!$('#hostAdultsConsent')?.checked : !!$('#joinAdultsConsent')?.checked;
+    await action(mode === 'create' ? 'create' : 'join', {name, gameMode:selectedGameMode, adultsConfirmed}, mode === 'join' ? draftCode : '');
   };
   syncBusy();
 }
@@ -241,7 +286,7 @@ function render(previous) {
   if (changed) {
     const host = state.me === state.host;
     const content = state.phase === 'lobby' ? lobbyMarkup(host) : state.phase === 'voting' ? votingMarkup() : resultsMarkup(host);
-    app.innerHTML = `<div class="room ${state.phase === 'results' ? 'results' : ''} screen-enter">${content}${controls()}</div>`;
+    app.innerHTML = `<div class="room ${state.phase === 'results' ? 'results' : ''} screen-enter">${modeBadge()}${content}${controls()}</div>`;
     renderedKey = key; rosterKey = '';
     bindRoom();
     if (previous && previous.phase !== 'lobby') window.scrollTo({top:0, behavior:'instant'});
@@ -267,7 +312,7 @@ async function copy(text, message) {
 async function shareInvite() {
   const url = `${location.origin}/?join=${code}`;
   if (navigator.share) {
-    try { await navigator.share({title:'You’re invited to Most Likely', text:`Join my game! Lobby code: ${code}`, url}); return; }
+    try { await navigator.share({title:'You’re invited to Most Likely', text:`Join my ${getGameMode(state.gameMode || 'family').label} game! Lobby code: ${code}`, url}); return; }
     catch (error) { if (error.name === 'AbortError') return; }
   }
   await copy(url, 'Invite link copied. Send it to your friends.');

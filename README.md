@@ -86,3 +86,15 @@ Completed verification: local game/API tests and build; desktop browser renderin
 Lobby joins update the guest list without replacing the host's round selector. During voting, other players' status updates preserve your pick and keyboard focus. Pick a player first, then confirm with the sticky lock-in button. Clear loading states prevent duplicate clicks, and failed requests keep form entries and selections available for retry.
 
 Invite sharing uses the phone's native share sheet when available, with copy-link and manual-copy fallbacks. Confirmation dialogs handle leaving or closing a round. Results include short reveal animations, optional vote breakdowns, and a history of earlier results. All animation respects reduced-motion preferences. Reconnection pauses in background tabs and backs off during connection failures.
+
+## Game modes
+
+The host chooses a mode when creating a lobby. The choice stays fixed for that lobby, including replays, so guests always know what they joined. Create a new lobby to choose a different mode.
+
+- **Family Friendly:** 250 all-ages prompts, including the original pool.
+- **Extra Judgmental:** 250 sharper, clean roasts about habits and everyday quirks; no explicit content.
+- **Adults Only:** 250 prompts with profanity, drinking, dating, and non-graphic sexual humor. This is the only explicit pool. The host and every new player must confirm they are 18 or older. This is a self-confirmation, not identity verification.
+
+Guests look up a lobby code and review its mode before joining. Public previews contain mode and player count, not player identities, questions, or votes. The server validates modes and adult confirmations. Each lobby keeps replay history for its chosen pool; pools never mix. Existing lobbies default to Family Friendly.
+
+Shared mode labels are in `public/game-modes.js`; the three actual prompt pools stay server-side. Add questions to `lib/prompts.js`, `lib/judgmental-prompts.js`, or `lib/adults-prompts.js` and keep each mode count in sync with its catalog.
