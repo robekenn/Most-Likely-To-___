@@ -182,3 +182,30 @@ dialog h2 { font-size: 29px; letter-spacing: -1px; }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .confetti { display: none; }
 }
+
+.mode-picker { border: 0; padding: 0; margin: 25px 0 0; min-width: 0; }
+.mode-picker legend { font-size: 12px; font-weight: 700; margin-bottom: 12px; }
+.mode-option { display: block; position: relative; margin: 9px 0; }
+.mode-option input { position: absolute; opacity: 0; width: 1px; height: 1px; min-height: 0; padding: 0; }
+.mode-card { display: block; padding: 14px 15px; border: 1px solid #d1d6c7; border-radius: 12px; background: #fafbf5; cursor: pointer; transition: background .18s,border-color .18s; }
+.mode-card strong { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.mode-card strong small { margin-left: auto; white-space: nowrap; color: #72766a; font-size: 10px; font-weight: 400; }
+.mode-card > span { display: block; font-size: 11px; font-weight: 400; line-height: 1.5; margin-top: 7px; color: #65695f; }
+.mode-option input:checked + .mode-card { background: #ecf5d8; border: 1.5px solid #758d4f; }
+.mode-option input[value="judgmental"]:checked + .mode-card { background: #f0e8fa; border-color: #9c80be; }
+.mode-option input[value="adults"]:checked + .mode-card { background: #fbe7dd; border-color: #b97b60; }
+.mode-option input:focus-visible + .mode-card { outline: 3px solid #7454c8; outline-offset: 3px; }
+.mode-option input:disabled + .mode-card { cursor: wait; opacity: .6; }
+.adult-consent { display: flex; gap: 11px; align-items: flex-start; background: #fbe7dd; border: 1px solid #dcaa94; border-radius: 10px; padding: 14px; line-height: 1.6; font-size: 12px; font-weight: 400; margin-top: 15px; }
+.adult-consent[hidden] { display: none; }
+.adult-consent input { width: 20px; height: 20px; min-height: 20px; flex-shrink: 0; margin: 2px 0 0; padding: 0; accent-color: #934a31; }
+.mode-banner { display: flex; gap: 10px; align-items: center; justify-content: space-between; border-radius: 10px; background: #eaf2d8; padding: 11px 14px; margin-bottom: 22px; font-size: 11px; }
+.mode-banner strong { font-size: 12px; }
+.mode-banner span { color: #65695f; }
+.mode-judgmental { background: #eee6f7; }
+.mode-adults { background: #f8e3d9; }
+.join-preview { padding: 17px; border: 1px solid #ccd2c2; border-radius: 12px; margin-top: 18px; }
+.join-preview strong { font-size: 16px; }
+.join-preview p { font-size: 12px; color: #65695f; line-height: 1.6; margin: 10px 0; }
+.join-preview > span { font-size: 11px; }
+@media(max-width:650px) { .mode-banner { flex-wrap: wrap; gap: 5px 12px; } .mode-card strong { font-size: 12px; } }
