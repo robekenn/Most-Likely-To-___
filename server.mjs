@@ -1,7 +1,7 @@
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import handler from './api/game.js';
-if(!process.env.UPSTASH_REDIS_REST_URL)process.env.LOCAL_MEMORY='1';
+if(!process.env.UPSTASH_REDIS_REST_URL&&!process.env.KV_REST_API_URL)process.env.LOCAL_MEMORY='1';
 const port=Number(process.env.PORT||(process.argv.includes('--port')?process.argv[process.argv.indexOf('--port')+1]:null)||3000);
 const allowed={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/favicon.svg':'favicon.svg'};
 http.createServer(async(req,res)=>{
