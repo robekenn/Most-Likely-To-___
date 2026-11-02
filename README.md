@@ -43,7 +43,7 @@ Official references:
 - Lobby membership locks at game start. Names must be unique, 1–24 characters.
 - Host chooses 1–N rounds, where N is the player count.
 - Self-voting is allowed. Each voter may choose each person at most once across the entire game. Other voters have their own independent restrictions.
-- 50 friendly prompts; prompts are shuffled server-side and never repeat within a game.
+- 250 family-friendly prompts, shuffled server-side. The same lobby remembers questions across replays and uses unseen prompts first. After the pool runs out, it refills without duplicating questions inside a game. A new lobby starts a new question history.
 - Everyone gets the same prompt. Choose a player, then tap **Lock in my vote**. You can change your selection before locking it; a locked vote cannot be changed.
 - The last vote advances the round automatically. The host can close a stuck round; absent votes are omitted rather than fabricated. Skipped votes do not use up a pick.
 - Results remain hidden until voting finishes and the host reveals them one at a time. All tied winners are shown. A round with no votes has no winner.
